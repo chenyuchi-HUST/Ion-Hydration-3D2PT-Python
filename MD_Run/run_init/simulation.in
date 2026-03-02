@@ -1,0 +1,123 @@
+#################### SETTING UP ####################
+units real
+dimension 3
+newton on
+boundary p p p
+atom_style full
+
+################### Ion LJ force field ############
+####### Ion-spc/e Joung FF########
+variable sigion equal 0.3526418
+variable zetion equal 2.160
+variable ioncharge equal 1.0   # Na
+
+#################### VARIABLES ####################
+variable Temp equal 298       # Temperature in K ~ 25C
+variable Pres equal 1.0       # Pressure in atm.
+
+variable RandomSeed equal 12345 # The random seed for velocity
+
+variable tstep equal 1.0      # 1fs 
+variable Ninptpre equal 10000 # Pre-initialize the NPT ensemble (very small timesteps)
+variable Npnpt equal 5000000    # Production the NPT ensemble
+
+variable Ndump equal 8        # Nfreq. (dump)
+variable Nf equal  1000        # Nfreq (fix ave/time and thermo)
+variable Ne equal  20         # Nevery (fix ave/time)
+variable Nr equal ${Nf}/${Ne} # Nrepeat (fix ave/time)
+variable NBR equal ${Npnpt}/5000 # Block averaging for density (NPT)
+
+#################### ATOM DEFINITION and FORCEFIELD ####################
+pair_style lj/cut/coul/long 10.0 10.0
+kspace_style pppm 1e-5
+bond_style harmonic
+angle_style harmonic
+pair_modify mix arithmetic # LB rule
+
+read_data system.data    # read the data
+
+set type 3 charge ${ioncharge}
+
+pair_coeff   1   1  0.15530   3.1660    # Ow Ow
+pair_coeff   2   2  0.00000   0.0000    # Hw Hw
+pair_coeff   3   3  ${sigion}   ${zetion}   # ion-ion
+#################### INITIALIZATION ####################
+# groups for the central atoms of water (O) and methanol (O)
+group water type 1 2  # The Oxygen of WATER molecules
+group ion type 3         
+
+# neigbor lists
+neighbor 2.0 bin
+neigh_modify every 1 delay 0 check yes
+
+# velocity-Verlet integrator
+run_style verlet
+
+# minimizing the system using the conjugate gradient method
+fix constrain22 ion setforce 0.0 0.0 0.0 # constrain the ion
+min_style cg
+min_modify dmax 0.05 
+minimize 1.0e-6 1.0e-8 10000 10000
+write_data min.data
+
+# initializing velocities
+velocity water create ${Temp} ${RandomSeed} mom yes rot yes dist gaussian
+velocity ion set 0.0 0.0 0.0
+
+# 计算水分子的温度
+compute Twater water temp
+
+# 输出到LOG
+thermo ${Nf}
+thermo_style custom step temp press pe ke etotal density vol
+thermo_modify flush yes
+thermo_modify temp Twater # thermo 的变量进行温度修正
+
+#################### 1) Initialize the NPT ensemble ####################
+# applying the shake algorithm for rigid molecules 
+fix constrain water shake 1.0e-4 20 0 b 1 a 1
+
+fix integrate water npt temp ${Temp} ${Temp} 10.0 iso ${Pres} ${Pres} 100.0 dilate water
+
+# fix removec water momentum 1 linear 1 1 1
+
+# Initializing the whole system with very small timesteps in the NPT ensemble
+timestep 0.001
+run ${Ninptpre} 
+timestep 0.01
+run ${Ninptpre} 
+timestep 0.1
+run ${Ninptpre} 
+timestep 0.2
+run ${Ninptpre} 
+timestep 0.5
+run ${Ninptpre} 
+reset_timestep 0
+
+# continuing the initialization with the final value of timestep
+unfix integrate
+fix integrate water npt temp ${Temp} ${Temp} 100.0 iso ${Pres} ${Pres} 1000.0 dilate water
+fix_modify integrate temp Twater
+
+# Getting the average volume, density and energy of the system
+variable Volume equal vol
+variable Dens equal density
+variable TotEn equal etotal
+variable PotEn equal pe
+variable KinEn equal ke
+
+# Output all properties to a single file
+fix PropAve all ave/time 1 ${NBR} ${NBR} v_Volume v_Dens v_TotEn v_PotEn v_KinEn file system_properties.dat
+
+# 输出rdf
+compute gr all rdf 2000 1 1 3 1
+fix grout all ave/time 20 5000 100000 c_gr[*] file rdf.dat mode vector
+
+# 输出轨迹
+dump mydump2 all xyz 10000 dump.xyz 
+dump_modify mydump2 element O H Li
+
+timestep ${tstep}
+run ${Npnpt}
+
+write_data system_postNPT.data

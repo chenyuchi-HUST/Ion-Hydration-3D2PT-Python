@@ -1,0 +1,26 @@
+# trajectory file obtained from LAMMPS simulation
+./dump.lammpstrj
+# number of frames in trajectory
+12501
+# number of atoms in each frame
+9001
+# data file to obtain MD box length
+./system_postNVT.data
+# frame to start analyze
+0
+# total frame to analyze
+12500
+# delayed frames to calculte 
+200
+# grid size for analysis
+48
+# grid spacings for analysis
+0.5
+# O_atom type in LAMMPS data file
+1
+# frame step for MD simulation
+0.008
+# chunk numbers (if you want chunk_frame)
+100
+# max angles per grid
+10000
