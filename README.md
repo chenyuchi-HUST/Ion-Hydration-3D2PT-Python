@@ -39,7 +39,7 @@ The final step averages the grid data across all independent runs, performs the 
 
 sbatch step-3_average_process.sh
 
-Note: You may need to adjust the PYTHON_SCRIPT_PATH variable in 04_3D2PT_avg_entropy.sh to match your cluster's absolute path.
+Note: You may need to adjust the PYTHON_SCRIPT_PATH variable in step-3_average_process.sh to match your cluster's absolute path.
 
 # Output
 Upon completion of Step 4, the average/ directory will contain the final thermodynamic maps, including vdos_trans_grid_averaged.npz, vdos_ang_grid_averaged.npz, and the resultant spatially resolved entropy grids ready for visualization.
