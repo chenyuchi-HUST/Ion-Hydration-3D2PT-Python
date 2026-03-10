@@ -1,8 +1,5 @@
 # Modified 3D-2PT Framework for Ionic Hydration Entropy
 
-This repository contains the analysis scripts and sample data for the paper:  
-**"Unveiling the Hidden Role of Outer-Shell Water in ionic hydration Thermodynamics"**
-
 ## Overview
 This code extends the traditional Three-Dimensional Two-Phase Thermodynamics (3D-2PT) method by introducing a **"Confined Rigid Rotor"** model. It explicitly accounts for the rotational symmetry breaking of water molecules induced by the long-range anisotropic electrostatic field of ions, allowing for an accurate, spatially resolved calculation of ionic hydration entropy.
 
